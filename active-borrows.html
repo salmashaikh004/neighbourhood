@@ -1,0 +1,340 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Active Borrows</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f6faf6;
+  --card:#ffffff;
+  --accent:#9bbc9b;
+  --danger:#c0392b;
+  --text:#153223;
+}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+  
+}
+
+.app{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  background:linear-gradient(180deg,#e9f2ea,#f3f8f3);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;   /* 🔥 REMOVE SCROLL FROM APP */
+}
+
+.app::-webkit-scrollbar{
+  display:none;               /* Chrome, Edge, Safari */
+}
+#borrowContainer{
+  flex:1;              /* take remaining space */
+  overflow-y:auto;     /* scroll only list */
+  overflow-x:hidden;
+
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+
+#borrowContainer::-webkit-scrollbar{
+  display:none;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.back{cursor:pointer;font-size:18px;}
+h1{font-family:Merriweather;font-size:18px;margin:0;}
+
+.section{
+  background:var(--card);
+  padding:12px;
+  border-radius:16px;
+  margin-bottom:12px;
+}
+
+.label{font-size:11px;opacity:0.6;}
+.value{font-weight:600;margin-top:4px;}
+
+.status{
+  margin-top:8px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.actions{margin-top:10px;}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:14px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.main-btn{background:var(--accent);}
+.danger-btn{background:var(--danger);color:white;}
+
+.overlay{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+
+.popup{
+  background:#fff;
+  width:320px;
+  max-width:90%;
+  padding:20px;
+  border-radius:20px;
+  text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,0.15);
+}
+
+.popup-actions{
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+}
+
+.popup-actions button{
+  flex:1;
+  padding:8px;
+  border-radius:10px;
+}
+.cancel{background:#eee;}
+.confirm{background:var(--accent);}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1>Active Borrows</h1>
+  </div>
+
+  <div id="borrowContainer"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="popup">
+      <div id="popupText">Confirm action?</div>
+      <div class="popup-actions">
+        <button class="cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm" onclick="confirmAction()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let selectedRequestId = null;
+let selectedActionType = null;
+let currentUserId = null;
+
+const container = document.getElementById("borrowContainer");
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    location.href="signin.html";
+    return;
+  }
+  currentUserId = user.uid;
+  loadBorrows();
+});
+
+async function loadBorrows(){
+
+  const q = query(
+    collection(db,"requests"),
+    where("receiverId","==",currentUserId),
+    where("status","in",["approved","active","overdue","completed"])
+  );
+
+  const snapshot = await getDocs(q);
+
+  container.innerHTML = "";
+
+  if(snapshot.empty){
+    container.innerHTML = `
+      <div class="section">
+        <div class="value">No borrows found</div>
+      </div>
+    `;
+    return;
+  }
+
+  snapshot.forEach(docSnap=>{
+
+    const data = docSnap.data();
+    const requestId = docSnap.id;
+    const now = new Date();
+
+    const card = document.createElement("div");
+    card.className = "section";
+
+    let statusText = "";
+    let buttonHTML = "";
+
+    if(data.status === "approved"){
+      statusText = "Approved (Not Started)";
+      buttonHTML = `
+        <div class="actions">
+          <button class="main-btn"
+            onclick="openConfirm('${requestId}','start')">
+            Start Borrow
+          </button>
+        </div>`;
+    }
+
+    if(data.status === "active"){
+      const due = data.expectedReturn?.toDate();
+      if(due && now > due){
+        updateDoc(doc(db,"requests",requestId),{status:"overdue"});
+        loadBorrows();
+        return;
+      }
+
+      const daysLeft = due
+        ? Math.ceil((due - now)/(1000*60*60*24))
+        : "-";
+
+      statusText = "Active • "+daysLeft+" days left";
+      buttonHTML = `
+        <div class="actions">
+          <button class="main-btn"
+            onclick="openConfirm('${requestId}','complete')">
+            Confirm Returned
+          </button>
+        </div>`;
+    }
+
+    if(data.status === "overdue"){
+      statusText = "⚠ Overdue";
+      buttonHTML = `
+        <div class="actions">
+          <button class="danger-btn"
+            onclick="openConfirm('${requestId}','complete')">
+            Force Return
+          </button>
+        </div>`;
+    }
+
+    if(data.status === "completed"){
+      statusText = "✔ Completed";
+    }
+
+    card.innerHTML = `
+      <div class="label">Resource</div>
+      <div class="value">${data.itemName || "Item"}</div>
+
+      <div class="label" style="margin-top:8px;">Status</div>
+      <div class="status" style="color:${
+        data.status === "overdue" ? "#c0392b" : "#2f7d4f"
+      };">
+        ${statusText}
+      </div>
+
+      ${buttonHTML}
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+window.openConfirm = function(id,type){
+  selectedRequestId = id;
+  selectedActionType = type;
+  document.getElementById("overlay").style.display="flex";
+}
+
+window.closeConfirm = function(){
+  document.getElementById("overlay").style.display="none";
+}
+
+window.confirmAction = async function(){
+
+  document.getElementById("overlay").style.display="none";
+
+  if(!selectedRequestId) return;
+
+  const requestRef = doc(db,"requests",selectedRequestId);
+
+  if(selectedActionType === "start"){
+    const now = new Date();
+    const expected = new Date();
+    expected.setDate(now.getDate() + 1);
+
+    await updateDoc(requestRef,{
+      status:"active",
+      borrowStart: now,
+      expectedReturn: expected
+    });
+  }
+
+  if(selectedActionType === "complete"){
+    await updateDoc(requestRef,{
+      status:"completed",
+      returnedAt: serverTimestamp()
+    });
+  }
+
+  loadBorrows();
+}
+
+</script>
+</body>
+</html>

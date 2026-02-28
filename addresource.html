@@ -1,0 +1,556 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Add Resource</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --page:#f3f7fb;
+  --card:#e7f0fb;
+  --panel:#ffffff;
+  --muted:#eef4fb;
+  --btn:#8fb6e8;
+  --text:#12304a;
+}
+*{box-sizing:border-box}
+
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--page);
+  font-family:Inter,system-ui;
+  color:var(--text);
+  display:flex;
+  justify-content:center;
+  padding:18px;
+}
+
+.card{
+  width:320px;
+  height:600px;
+  border-radius:34px;
+  padding:18px;
+  background:linear-gradient(180deg,var(--card),#f9fbff);
+  box-shadow:0 10px 26px rgba(0,0,0,0.06);
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+
+.top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.backlink{
+  color:var(--btn);
+  font-weight:700;
+  cursor:pointer;
+}
+
+.title{
+  font-family:'Merriweather',serif;
+  font-size:20px;
+}
+
+.form{
+  flex:1;
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+.form::-webkit-scrollbar{
+  display:none;
+}
+
+.section{
+  background:var(--panel);
+  padding:12px;
+  border-radius:14px;
+  margin-bottom:12px;
+}
+
+label{
+  display:block;
+  font-size:12px;
+  color:rgba(18,48,74,0.6);
+  margin-bottom:6px;
+}
+
+input, textarea{
+  width:100%;
+  border:0;
+  outline:none;
+  background:var(--muted);
+  padding:10px;
+  border-radius:12px;
+  font-size:14px;
+  font-family:Inter;
+  color:var(--text);
+}
+
+textarea{
+  resize:none;
+  height:80px;
+}
+
+/* Upload Box */
+.upload-box{
+  background:var(--muted);
+  border-radius:14px;
+  padding:14px;
+  text-align:center;
+  cursor:pointer;
+  font-size:13px;
+  color:rgba(18,48,74,0.6);
+  margin-bottom:10px;
+}
+
+/* Preview Grid */
+.image-preview-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:6px;
+}
+
+.image-preview-grid img{
+  width:100%;
+  height:70px;
+  object-fit:cover;
+  border-radius:10px;
+}
+
+/* Location */
+.location{
+  background:linear-gradient(180deg,#eaf2fb,#dce9f8);
+  padding:12px;
+  border-radius:12px;
+  font-size:13px;
+  color:rgba(18,48,74,0.6);
+}
+
+.action{
+  margin-top:12px;
+}
+
+button{
+  width:100%;
+  background:var(--btn);
+  border:0;
+  padding:12px;
+  border-radius:14px;
+  font-weight:700;
+  color:#0b2440;
+  cursor:pointer;
+}
+
+/* Confirm Popup */
+.confirm-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.3);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.confirm-box{
+  background:#ffffff;
+  width:85%;
+  padding:18px;
+  border-radius:18px;
+  text-align:center;
+}
+
+.confirm-actions{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+
+.cancel-btn{
+  background:#eeeeee;
+}
+
+.yes-btn{
+  background:var(--btn);
+}
+</style>
+</head>
+
+<body>
+<main class="card">
+
+<div class="top">
+  <div class="backlink" onclick="history.back()">←</div>
+  <div class="title">Add Resource</div>
+</div>
+
+<div class="form">
+
+  <div class="section">
+    <label>Resource Name</label>
+    <input type="text" id="resourceName" />
+  </div>
+
+  <div class="section">
+    <label>Category</label>
+    <input type="text" id="category" />
+  </div>
+
+  <div class="section">
+    <label>Upload Photos</label>
+
+    <div class="upload-box" onclick="document.getElementById('photoInput').click()">
+      📷 Click to upload multiple photos
+    </div>
+
+    <input type="file" 
+           id="photoInput" 
+           accept="image/*" 
+           multiple 
+           hidden 
+           onchange="previewPhotos(event)">
+
+    <div class="image-preview-grid" id="previewGrid"></div>
+  </div>
+
+  <div class="section">
+    <label>Description</label>
+    <textarea id="description"></textarea>
+  </div>
+
+  <div class="section">
+    <label>Location</label>
+    <div class="location" id="locationText">
+  Detecting location...
+</div>
+  </div>
+  
+    <div class="section">
+      <label>Terms & Conditions</label>
+     <textarea id="terms"></textarea>
+    </div>
+
+    <div class="section">
+      <label>Allowed Duration</label>
+      <input type="text" id="duration">
+    </div>
+
+    <div class="section">
+      <label>Rules</label>
+     <textarea id="rules"></textarea>
+    </div>
+  </div>
+
+
+
+<div class="action">
+  <button onclick="openConfirm()">Publish Resource</button>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div style="font-weight:700;">Confirm Publish</div>
+    <div style="font-size:13px;margin-top:6px;opacity:0.7;">
+      Do you want to publish this resource?
+    </div>
+    <div class="confirm-actions">
+      <button class="cancel-btn" onclick="closeConfirm()">Cancel</button>
+      <button class="yes-btn" onclick="confirmPublish()">Yes</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { 
+  getFirestore, 
+  collection,
+  addDoc,
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+/* FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let imageArray = [];
+let userLocation = null;
+
+/* ================= AUTH + LOCATION ================= */
+
+
+
+window.previewPhotos = function(event){
+
+  const files = event.target.files;
+  const grid = document.getElementById("previewGrid");
+
+  for(let i = 0; i < files.length; i++){
+
+    const file = files[i];
+    if(!file.type.startsWith("image/")) continue;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+      const img = new Image();
+      img.src = e.target.result;
+
+      img.onload = function(){
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const MAX_WIDTH = 400;
+        const scale = MAX_WIDTH / img.width;
+
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scale;
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const compressed = canvas.toDataURL("image/jpeg", 0.6);
+
+        // Save to array
+        imageArray.push(compressed);
+
+        // Create wrapper
+        const wrapper = document.createElement("div");
+        wrapper.style.position = "relative";
+
+        const previewImg = document.createElement("img");
+        previewImg.src = compressed;
+
+        // Remove button
+        const removeBtn = document.createElement("div");
+        removeBtn.innerText = "✕";
+        removeBtn.style.position = "absolute";
+        removeBtn.style.top = "4px";
+        removeBtn.style.right = "4px";
+        removeBtn.style.background = "rgba(0,0,0,0.6)";
+        removeBtn.style.color = "white";
+        removeBtn.style.fontSize = "12px";
+        removeBtn.style.padding = "2px 6px";
+        removeBtn.style.borderRadius = "50%";
+        removeBtn.style.cursor = "pointer";
+
+        removeBtn.onclick = function(){
+
+          // Remove from imageArray
+          const index = imageArray.indexOf(compressed);
+          if(index > -1){
+            imageArray.splice(index, 1);
+          }
+
+          // Remove from UI
+          wrapper.remove();
+        };
+
+        wrapper.appendChild(previewImg);
+        wrapper.appendChild(removeBtn);
+
+        grid.appendChild(wrapper);
+
+      };
+
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+};
+/* ================= GET LOCATION ================= */
+async function detectLocation(){
+
+  const locationBox =
+    document.getElementById("locationText");
+
+  if(!navigator.geolocation){
+    locationBox.innerText =
+      "Geolocation not supported";
+    return;
+  }
+
+  locationBox.innerText = "Detecting location...";
+
+  navigator.geolocation.getCurrentPosition(
+    async function(position){
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      try{
+
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
+          {
+            headers:{
+              "Accept": "application/json",
+              "User-Agent": "Neighbourhood-App"
+            }
+          }
+        );
+
+        const data = await response.json();
+
+        // 🔥 THIS LINE GIVES FULL ADDRESS
+        const fullAddress = data.display_name;
+
+        userLocation = {
+          lat: lat,
+          lng: lng,
+          address: fullAddress
+        };
+
+        locationBox.innerText = fullAddress;
+
+        console.log("Full Address:", userLocation);
+
+      } catch(error){
+
+        console.log("Reverse geocode failed:", error);
+
+        userLocation = {
+          lat: lat,
+          lng: lng,
+          address: "Location detected"
+        };
+
+        locationBox.innerText =
+          "Location detected";
+      }
+
+    },
+    function(error){
+      console.log(error);
+      locationBox.innerText =
+        "Location permission denied";
+    },
+    {
+      enableHighAccuracy:true,
+      timeout:10000
+    }
+  );
+}
+/* ================= CONFIRM POPUP ================= */
+
+window.openConfirm = function(){
+
+  if(!validateForm()) return;
+
+  document.getElementById("confirmOverlay").style.display="flex";
+
+};
+
+window.closeConfirm = function(){
+  document.getElementById("confirmOverlay").style.display="none";
+};
+
+/* ================= FORM VALIDATION ================= */
+
+function validateForm(){
+
+  const name = document.getElementById("resourceName").value.trim();
+  const category = document.getElementById("category").value.trim();
+  const description = document.getElementById("description").value.trim();
+  const terms = document.getElementById("terms").value.trim();
+  const duration = document.getElementById("duration").value.trim();
+  const rules = document.getElementById("rules").value.trim();
+
+  if(!name || !category || !description || !terms || !duration || !rules){
+    alert("Please fill all fields properly");
+    return false;
+  }
+
+  if(imageArray.length === 0){
+    alert("Please upload at least one image");
+    return false;
+  }
+
+  if(!userLocation){
+    alert("Location not detected yet");
+    return false;
+  }
+
+  return true;
+}
+
+/* ================= PUBLISH ================= */
+
+window.confirmPublish = async function(){
+
+  try {
+
+    if(!validateForm()) return;
+
+    await addDoc(collection(db, "resources"), {
+
+      userId: currentUser.uid,
+      name: document.getElementById("resourceName").value.trim(),
+      category: document.getElementById("category").value.trim(),
+      description: document.getElementById("description").value.trim(),
+      terms: document.getElementById("terms").value.trim(),
+      duration: document.getElementById("duration").value.trim(),
+      rules: document.getElementById("rules").value.trim(),
+      images: imageArray,
+      location: {
+    lat: userLocation.lat,
+    lng: userLocation.lng,
+    address: userLocation.address
+  },
+      status: "available",
+      createdAt: serverTimestamp()
+
+    });
+
+    alert("Resource Published Successfully");
+
+    document.getElementById("confirmOverlay").style.display="none";
+
+    window.location.href = "resource-details.html";
+
+  } catch(error){
+
+    console.error("Publish Error:", error);
+    alert("Error: " + error.message);
+
+  }
+
+};
+onAuthStateChanged(auth, (user)=>{
+
+  if(!user){
+    window.location.href="signin.html";
+    return;
+  }
+
+  currentUser = user;
+
+  detectLocation();   
+
+});
+
+</script>
+
+</body>
+</html>

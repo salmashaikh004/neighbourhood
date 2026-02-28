@@ -1,0 +1,564 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Neighbourhood — Borrow Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --page-bg:#e6f0e8;
+  --panel:#dbeadb;
+  --inner:#f3f8f3;
+  --accent:#8aa98a;
+  --text:#123326;
+  --card:#ffffff;
+}
+
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  height:100%;
+  background:var(--page-bg);
+  font-family:Inter,system-ui;
+  color:var(--text);
+}
+
+.wrap{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.card{
+  position:relative;
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  padding:18px;
+  background:linear-gradient(180deg,var(--panel),#e4f0e6);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  overflow:hidden;
+}
+
+/* HEADER */
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.menu-btn, .profile-btn{
+  background:none;
+  border:0;
+  font-size:20px;
+  cursor:pointer;
+}
+
+.profile-btn{
+  background:#cfe2d5;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+}
+
+/* TITLE */
+.title{
+  font-family:Merriweather, serif;
+  font-size:26px;
+}
+.stats-card{
+  background:var(--inner);
+  border-radius:16px;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.03);
+}
+
+.stat{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  font-size:13px;
+}
+
+.stat strong{
+  font-size:16px;
+}
+
+
+/* ACTIONS */
+.actions{
+  display:flex;
+  gap:12px;
+}
+
+.action{
+  flex:1;
+  background:var(--inner);
+  border-radius:14px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+}
+
+.action .icon{
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  background:#eaf5ea;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+}
+
+.action .label{
+  font-weight:700;
+  font-size:13px;
+}
+
+/* RECENT SECTION */
+
+
+.recent{
+  background:var(--inner);
+  border-radius:16px;
+  padding:12px;
+  margin-top:6px;
+
+  flex:1;                 /* 🔥 Take remaining space */
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;        /* Hide outer overflow */
+}
+.recent-scroll{
+  overflow-y:auto;
+  flex:1;
+
+  /* Hide scrollbar */
+  scrollbar-width:none;            /* Firefox */
+}
+
+.recent-scroll::-webkit-scrollbar{
+  display:none;                    /* Chrome / Edge */
+}
+
+.recent-title{
+  font-weight:700;
+  margin-bottom:10px;
+  font-size:14px;
+}
+
+.activity-item{
+  background:#ffffff;
+  border-radius:12px;
+  padding:10px;
+  margin-bottom:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.04);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.activity-info{
+  display:flex;
+  flex-direction:column;
+  font-size:13px;
+}
+
+.activity-status{
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:10px;
+  font-weight:600;
+}
+
+.status-completed{
+  background:#d8f0dc;
+  color:#2f7d4f;
+}
+
+.status-pending{
+  background:#fff3cd;
+  color:#8a6d3b;
+}
+
+.status-approved{
+  background:#cfe2ff;
+  color:#2155a3;
+}
+.empty-state{
+  margin:auto;
+  font-size:12px;
+  opacity:0.6;
+  text-align:center;
+}
+
+/* MENU OVERLAY */
+.menu-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.25);
+  display:none;
+  z-index:10;
+}
+
+/* SIDE MENU */
+.side-menu{
+  position:absolute;
+  top:0;
+  left:-240px;
+  width:240px;
+  height:100%;
+  background:linear-gradient(180deg,var(--panel),#e4f0e6);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  transition:0.25s;
+  z-index:11;
+  border-radius:28px 0 0 28px;
+}
+
+.side-menu.open{ left:0; }
+
+.menu-card{
+  background:var(--inner);
+  border-radius:16px;
+  padding:14px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  cursor:pointer;
+}
+
+.menu-icon{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  background:#dce9dc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.menu-text{
+  font-weight:600;
+}
+
+/* DANGER */
+.menu-card.danger{
+  background:#f3dede;
+}
+.menu-card{
+  flex:1;
+  overflow:auto;
+
+
+  /* Hide scrollbar */
+  scrollbar-width: none;          /* Firefox */
+}
+
+.content::-webkit-scrollbar{
+  display: none;                  /* Chrome / Edge / Safari */
+}
+.emergency-card{
+  background:#fde2e2;
+  padding:12px;
+  border-radius:14px;
+  font-weight:700;
+  color:#b03a2e;
+  cursor:pointer;
+  text-align:center;
+  margin-bottom:10px;
+}
+
+</style>
+</head>
+
+<body>
+<div class="wrap">
+<main class="card">
+
+  <!-- MENU -->
+  <div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+
+  <div class="side-menu" id="sideMenu">
+
+  
+    <!-- SWITCH MODE -->
+    <div class="menu-card" onclick="switchMode()">
+      <div class="menu-icon">🔁</div>
+      <div class="menu-text">Switch to Owner</div>
+    </div>
+
+
+    <!-- PROFILE -->
+    <div class="menu-card" onclick="go('profileedit.html')">
+      <div class="menu-icon">👤</div>
+      <div class="menu-text">Profile Edit</div>
+    </div>
+
+    <!-- LISTINGS -->
+    <div class="menu-card" onclick="go('listings.html')">
+      <div class="menu-icon">🏷️</div>
+      <div class="menu-text">My Listings</div>
+    </div>
+
+    <!-- REQUESTS (CONTEXT PASSED) -->
+    <div class="menu-card" onclick="go('requests.html')">
+      <div class="menu-icon">📄</div>
+      <div class="menu-text">Requests</div>
+    </div>
+
+    <!-- MESSAGES (CONTEXT PASSED) -->
+    <div class="menu-card" onclick="go('messages.html')">
+      <div class="menu-icon">✉️</div>
+      <div class="menu-text">Messages</div>
+    </div>
+
+    <div class="menu-card" onclick="go('blocked-users.html')">
+  <div class="menu-icon">🔒</div>
+  <div class="menu-text">Blocked Users</div>
+</div>
+
+    <div class="menu-card" onclick="location.href='history.html'">
+  <div class="menu-icon">📜</div>
+  <div class="menu-text">History</div>
+</div>
+
+
+    <div class="menu-card" onclick="location.href='safety_center.html'">
+  <div class="menu-icon">🛡</div>
+  <div class="menu-text">Safety & Support</div>
+</div>
+
+
+     <div class="menu-card" onclick="location.href='language.html'">
+      <div class="menu-icon">🌐</div>
+       <div class="menu-text">Language</div>
+    </div>
+
+
+  </div>
+
+  <!-- HEADER -->
+  <div class="top">
+    <button class="menu-btn" onclick="openMenu()">☰</button>
+    <button class="profile-btn" onclick="location.href='my_profile.html'">👤</button>
+  </div>
+
+  <h1 class="title">Dashboard</h1>
+  <div class="stats-card">
+  <div class="stat">
+    ⭐ <strong id="trustScore">0</strong>
+    <span>Trust Score</span>
+  </div>
+
+  <div class="stat">
+    💰 <strong id="creditPoints">0</strong>
+    <span>Credits</span>
+  </div>
+</div>
+
+
+  <div class="actions">
+    <div class="action" onclick="location.href='resources.html'">
+      <div class="icon">🔍</div>
+      <div class="label">Browse Items</div>
+    </div>
+
+    <div class="action" onclick="location.href='requests.html?from=borrow'">
+      <div class="icon">📄</div>
+      <div class="label">My Requests</div>
+    </div>
+  </div>
+  <div class="emergency-card" onclick="location.href='emergency.html'">
+  🚨 Post Emergency Request
+</div>
+
+
+  <!-- RECENT -->
+<div class="recent">
+  <div class="recent-title">Recent Activity</div> 
+  <div class="recent-scroll">
+    <div id="recentContainer">Loading...</div>
+  </div>
+</div>
+
+
+</main>
+</div>
+
+
+<script type="module">
+
+localStorage.setItem("mode","borrow");
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+/* ===== FIREBASE CONFIG ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ================= MENU ================= */
+
+window.openMenu = function(){
+  document.getElementById("sideMenu")?.classList.add("open");
+  document.getElementById("menuOverlay").style.display = "block";
+};
+
+window.closeMenu = function(){
+  document.getElementById("sideMenu")?.classList.remove("open");
+  document.getElementById("menuOverlay").style.display = "none";
+};
+
+window.go = function(page){
+  window.location.href = page;
+};
+
+window.switchMode = function(){
+  window.location.href = "owner-dashboard.html";
+};
+
+/* ================= AUTH ================= */
+
+onAuthStateChanged(auth, async (user) => {
+
+  if (!user) {
+    window.location.href = "signin.html";
+    return;
+  }
+
+  try {
+
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) return;
+
+    const data = userSnap.data();
+
+    /* ===== TRUST & CREDITS ===== */
+    document.getElementById("trustScore").innerText =
+      data.trustScore ?? 0;
+
+    document.getElementById("creditPoints").innerText =
+      data.credits ?? 0;
+
+    /* ===== PROFILE BUTTON ===== */
+    const profileBtn = document.querySelector(".profile-btn");
+    
+    if (data.photo && data.photo !== "") {
+      profileBtn.innerHTML = `
+        <img src="${data.photo}"
+        style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+      `;
+    } else {
+      profileBtn.innerText =
+        user.displayName
+          ? user.displayName.charAt(0).toUpperCase()
+          : "U";
+    }
+
+    /* ===== LOAD RECENT ACTIVITY REALTIME ===== */
+    listenRecentActivity(user.uid);
+
+  } catch(error) {
+    console.log("Dashboard Error:", error);
+  }
+
+});
+
+/* ================= RECENT ACTIVITY ================= */
+
+function listenRecentActivity(uid){
+
+  const container = document.getElementById("recentContainer");
+  if(!container) return;
+
+  const q = query(
+    collection(db,"requests"),
+    where("senderId","==",uid)
+  );
+
+  onSnapshot(q,(snapshot)=>{
+
+    if(snapshot.empty){
+      container.innerHTML = "No recent activity.";
+      return;
+    }
+
+    container.innerHTML = "";
+
+    // Convert snapshot to array
+    const docs = [];
+    snapshot.forEach(docSnap=>{
+      docs.push(docSnap.data());
+    });
+
+    // Sort manually (safe even if createdAt missing)
+    docs.sort((a,b)=>{
+      const aTime = a.createdAt?.seconds || 0;
+      const bTime = b.createdAt?.seconds || 0;
+      return bTime - aTime;
+    });
+
+    // Limit to 5
+   
+ docs.slice(0,5).forEach(data=>{
+
+      const item = document.createElement("div");
+      item.style.marginBottom = "8px";
+      item.style.fontSize = "12px";
+
+      item.innerHTML = `
+        <strong>${data.itemName || "Item"}</strong><br>
+        Status: ${data.status || "pending"}
+      `;
+
+      container.appendChild(item);
+
+    });
+
+  });
+}
+</script>
+
+</body>
+</html>

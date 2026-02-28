@@ -1,0 +1,558 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>My Resources</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --page:#f3f7fb;
+  --card:#e7f0fb;
+  --panel:#ffffff;
+  --muted:#eef4fb;
+  --btn:#8fb6e8;
+  --text:#12304a;
+}
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  height:100%;
+  background:var(--page);
+  font-family:Inter,system-ui;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+  color:var(--text);
+}
+
+.app{
+  position:relative;
+  overflow:hidden;
+  width:320px;
+  height:600px;
+  border-radius:36px;
+  background:linear-gradient(180deg,var(--card),#f9fbff);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+}
+
+/* HEADER */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
+}
+
+.icon-btn{
+  background:var(--panel);
+  border-radius:12px;
+  width:36px;
+  height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  cursor:pointer;
+}
+
+/* TITLE */
+h1{
+  font-family:Merriweather,serif;
+  font-size:22px;
+  margin:6px 0 10px;
+}
+
+/* TRUST + CREDIT */
+.stats-card{
+  background:var(--panel);
+  border-radius:16px;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:14px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.03);
+}
+
+.stat{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  font-size:13px;
+}
+
+.stat strong{
+  font-size:16px;
+}
+
+/* ADD RESOURCE */
+.add-card{
+  background:white;
+  border-radius:22px;
+  padding:22px;
+  text-align:center;
+  cursor:pointer;
+  margin-bottom:20px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.05);
+  transition:0.2s ease;
+}
+
+.add-card:hover{
+  transform:translateY(-2px);
+}
+
+.add-icon{
+  width:36px;            /* ⬅ smaller */
+  height:24px;           /* ⬅ smaller */
+  background:var(--muted);
+  border-radius:12px;
+  margin:0 auto 8px;     /* ⬅ tighter spacing */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;        /* ⬅ smaller icon */
+}
+
+.add-title{
+  font-weight:700;
+  margin-bottom:4px;
+  font-size:14px;
+}
+
+.add-desc{
+  font-size:11px;
+  color:rgba(18,48,74,0.6);
+}
+
+/* LISTINGS */
+.section{
+  background:white;
+  border-radius:22px;
+  padding:18px;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 10px 24px rgba(0,0,0,0.04);
+}
+.section-title{
+  font-weight:700;
+  font-size:17px;
+  margin:8px 4px 12px;
+  letter-spacing:0.3px;
+}
+
+.listing-container{
+  flex:1;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  padding-right:4px;
+  scroll-behavior:smooth;
+}
+
+.listing-container::-webkit-scrollbar{
+  display:none;
+}
+
+.empty{
+  margin:auto;
+  text-align:center;
+  font-size:13px;
+  color:rgba(18,48,74,0.5);
+}
+
+/* LISTING CARD */
+.listing-card{
+  background:white;
+  border-radius:16px;
+  padding:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.05);
+  cursor:pointer;
+  transition:0.2s ease;
+}
+
+.listing-card:hover{
+  transform:translateY(-2px);
+}
+.listing-title{
+  font-weight:600;
+}
+
+.listing-sub{
+  font-size:12px;
+  opacity:0.6;
+}
+
+/* ===== MENU ===== */
+.menu-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.25);
+  display:none;
+  z-index:10;
+}
+
+.side-menu{
+  position:absolute;
+  top:0;
+  left:-240px;
+  width:240px;
+  height:100%;
+  background:linear-gradient(180deg,var(--card),#f9fbff);
+  box-shadow:6px 0 18px rgba(0,0,0,0.15);
+  padding:16px;
+  transition:left 0.25s ease;
+  z-index:11;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  border-radius:36px 0 0 36px;
+}
+
+.side-menu.open{ left:0; }
+
+.menu-card{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:var(--panel);
+  padding:14px;
+  border-radius:16px;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(0,0,0,0.04);
+}
+
+.menu-icon{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  background:var(--muted);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+}
+
+.menu-text{
+  font-weight:600;
+}
+
+.menu-card.danger{
+  background:#f3dede;
+}
+
+.menu-card.danger .menu-icon{
+  background:#e9c6c6;
+}
+.menu-card{
+  flex:1;
+  overflow:auto;
+
+
+  /* Hide scrollbar */
+  scrollbar-width: none;          /* Firefox */
+}
+
+.content::-webkit-scrollbar{
+  display: none;                  /* Chrome / Edge / Safari */
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- MENU -->
+  <div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+
+  <div class="side-menu" id="sideMenu">
+
+   <div class="menu-card" id="modeSwitch">
+      <div class="menu-icon">🔁</div>
+      <div class="menu-text">Switch Mode</div>
+    </div>
+
+    <div class="menu-card" onclick="location.href='profileedit_new.html'">
+      <div class="menu-icon">👤</div>
+      <div class="menu-text">Edit Profile</div>
+    </div>
+
+    <div class="menu-card" onclick="location.href='requests.html'">
+      <div class="menu-icon">📄</div>
+      <div class="menu-text">Requests</div>
+    </div>
+
+    <div class="menu-card" onclick="location.href='active-borrows.html'">
+  <div class="menu-icon">📦</div>
+  <div class="menu-text">Active Borrows</div>
+</div>
+
+    <div class="menu-card" onclick="location.href='messages.html'">
+      <div class="menu-icon">✉️</div>
+      <div class="menu-text">Messages</div>
+    </div>
+
+    <div class="menu-card" onclick="go('blocked-users.html')">
+  <div class="menu-icon">🔒</div>
+  <div class="menu-text">Blocked Users</div>
+</div>
+
+    <div class="menu-card" onclick="location.href='history.html'">
+      <div class="menu-icon">📜</div>
+      <div class="menu-text">History</div>
+    </div>
+
+    <div class="menu-card" onclick="location.href='safety_center.html'">
+      <div class="menu-icon">🛡</div>
+      <div class="menu-text">Safety & Support</div>
+    </div>
+
+   
+    <div class="menu-card" onclick="location.href='language.html'">
+      <div class="menu-icon">🌐</div>
+       <div class="menu-text">Language</div>
+    </div>
+
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="icon-btn" onclick="openMenu()">☰</div>
+    <div class="icon-btn" onclick="location.href='my_profile_new.html'">👤</div>
+  </div>
+
+  <h1>My Resources</h1>
+
+  <!-- TRUST + CREDIT -->
+  <div class="stats-card">
+    <div class="stat">
+      ⭐ <strong id="trustScore">0</strong>
+      <span>Trust Score</span>
+    </div>
+
+    <div class="stat">
+      💰 <strong id="creditPoints">0</strong>
+      <span>Credits</span>
+    </div>
+  </div>
+
+  <!-- ADD RESOURCE -->
+  <div class="add-card" onclick="location.href='addresource.html'">
+    <div class="add-icon">＋</div>
+    <div class="add-title">Add Resource</div>
+    <div class="add-desc">Share an item with your neighborhood</div>
+  </div>
+
+  <!-- LIST -->
+<div class="section-title" style="margin-bottom:10px;">
+  My Listings
+</div>
+
+<div class="listing-container" id="listingContainer"></div>
+</div>
+
+<script type="module">
+localStorage.setItem("mode","owner");
+
+import { updateDoc, increment } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { 
+  getAuth, 
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { 
+  getFirestore, 
+  doc, 
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+/* ===== FIREBASE CONFIG ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ===== MENU ===== */
+window.openMenu = function(){
+  document.getElementById("sideMenu").classList.add("open");
+  document.getElementById("menuOverlay").style.display="block";
+
+  document.getElementById("modeSwitch").onclick =
+    () => window.location.href='borrow-dashboard.html';
+}
+
+window.closeMenu = function(){
+  document.getElementById("sideMenu").classList.remove("open");
+  document.getElementById("menuOverlay").style.display="none";
+}
+
+/* ===== AUTH CHECK ===== */
+onAuthStateChanged(auth, async (user) => {
+
+  if(!user){
+    window.location.href = "signin.html";
+    return;
+  }
+
+  console.log("Logged user:", user.uid);
+
+  /* ===== LOAD USER DATA ===== */
+  try{
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+
+    if(userSnap.exists()){
+      const data = userSnap.data();
+
+      document.getElementById("trustScore").innerText =
+        data.trustScore ?? 0;
+
+      document.getElementById("creditPoints").innerText =
+        data.credits ?? 0;
+
+      const profileIcon =
+        document.querySelector(".header .icon-btn:last-child");
+
+      if(data.photo && data.photo !== ""){
+        profileIcon.innerHTML = `
+          <img src="${data.photo}"
+          style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+        `;
+      } else {
+        profileIcon.innerText =
+          user.displayName
+            ? user.displayName.charAt(0).toUpperCase()
+            : "U";
+      }
+    }
+
+  } catch(e){
+    console.error("User load error:", e);
+  }
+
+  /* ===== LOAD MY LISTINGS ===== */
+  loadListings(user.uid);
+
+});
+
+/* ===== LOAD LISTINGS ===== */
+async function loadListings(uid){
+
+  const container = document.getElementById("listingContainer");
+  container.innerHTML = "Loading...";
+
+  try{
+
+    const q = query(
+      collection(db, "resources"),
+      where("userId","==",uid)
+    );
+
+    const snapshot = await getDocs(q);
+
+    container.innerHTML = "";
+
+    if(snapshot.empty){
+      container.innerHTML =
+        `<div class="empty">No resources added yet</div>`;
+      return;
+    }
+
+    snapshot.forEach(docSnap => {
+
+      const item = docSnap.data();
+      const docId = docSnap.id;
+
+      const card = document.createElement("div");
+      card.className = "listing-card";
+
+     card.innerHTML = `
+  <div style="
+      display:flex;
+      align-items:center;
+      gap:12px;
+  ">
+
+    <div style="
+        width:60px;
+        height:60px;
+        border-radius:12px;
+        overflow:hidden;
+        background:#ddd;
+        flex-shrink:0;
+    ">
+      <img src="${item.images?.[0] || ''}" 
+           style="width:100%;height:100%;object-fit:cover;">
+    </div>
+
+    <div style="flex:1;">
+
+        <div style="
+            font-weight:600;
+            font-size:14px;
+        ">
+            ${item.name ?? "No Name"}
+        </div>
+
+        <div style="
+            font-size:12px;
+            opacity:0.6;
+            margin-top:2px;
+        ">
+            ${item.category ?? ""}
+        </div>
+
+        <div style="
+            font-size:12px;
+            margin-top:6px;
+            font-weight:600;
+            color:${item.status === "available" ? "#2f7d4f" : "#c0392b"};
+        ">
+            ${item.status === "available"
+              ? "🟢 Available"
+              : "🔴 Not Available"}
+        </div>
+
+    </div>
+
+  </div>
+`;
+
+      card.onclick = () => {
+        window.location.href =
+          "resource-details.html?id=" + docId;
+      };
+
+      container.appendChild(card);
+    });
+
+  } catch(error){
+    console.error("Listing error:", error);
+    container.innerHTML =
+      `<div class="empty">Error loading listings</div>`;
+  }
+}
+
+</script>
+
+</body>
+</html>
+
+

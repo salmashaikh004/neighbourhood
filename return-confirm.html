@@ -1,0 +1,141 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Confirm Return</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+/* === SAME CSS AS YOURS (UNCHANGED) === */
+:root{
+  --bg:#f6faf6;
+  --card:#ffffff;
+  --accent:#9bbc9b;
+  --text:#153223;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.app{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  background:linear-gradient(180deg,#e9f2ea,#f3f8f3);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+}
+.header{display:flex;align-items:center;gap:10px;}
+.back{cursor:pointer;font-size:18px;}
+h1{font-family:Merriweather;font-size:18px;margin:0;}
+.content{flex:1;display:flex;justify-content:center;align-items:center;}
+.card{
+  width:100%;
+  background:var(--card);
+  border-radius:18px;
+  padding:24px 18px;
+  text-align:center;
+  box-shadow:0 6px 14px rgba(0,0,0,0.05);
+}
+.icon{font-size:40px;margin-bottom:16px;}
+.text{font-size:14px;line-height:1.5;color:var(--text);}
+.actions{display:flex;gap:10px;}
+button{flex:1;padding:12px;border:none;border-radius:14px;font-weight:600;cursor:pointer;}
+.cancel{background:#eeeeee;}
+.confirm{background:var(--accent);}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1>Confirm Return</h1>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <div class="icon">📦</div>
+      <div class="text">
+        Confirm that the item has been returned.
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="cancel" onclick="history.back()">Cancel</button>
+    <button class="confirm" id="confirmBtn">
+      Confirm
+    </button>
+  </div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  updateDoc,
+  increment,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const requestId = new URLSearchParams(window.location.search).get("id");
+
+document.getElementById("confirmBtn").addEventListener("click", async()=>{
+
+  if(!requestId) return alert("Request ID missing");
+
+  const requestRef = doc(db,"requests",requestId);
+  const requestSnap = await getDoc(requestRef);
+  if(!requestSnap.exists()) return alert("Request not found");
+
+  const requestData = requestSnap.data();
+
+  // 1️⃣ Mark request completed
+  await updateDoc(requestRef,{
+    status:"completed"
+  });
+
+  // 2️⃣ Increase trust score for both users
+  await updateDoc(doc(db,"users",requestData.senderId),{
+    trustScore: increment(1)
+  });
+
+  await updateDoc(doc(db,"users",requestData.receiverId),{
+    trustScore: increment(1)
+  });
+
+  alert("Return confirmed ✔");
+  window.location.href = "rate-user.html?id="+requestId;
+
+});
+
+</script>
+
+</body>
+</html>

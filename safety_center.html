@@ -1,0 +1,273 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Safety Center</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f6faf6;
+  --card:#ffffff;
+  --accent:#9bbc9b;
+  --danger:#e57373;
+  --warning:#ffb74d;
+  --text:#153223;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.app{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  background:linear-gradient(180deg,#e9f2ea,#f3f8f3);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+
+.content{
+  flex:1;
+  overflow:auto;
+  scrollbar-width:none;
+}
+.content::-webkit-scrollbar{display:none;}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+}
+
+.back{
+  cursor:pointer;
+  font-size:18px;
+}
+
+h1{
+  font-family:Merriweather;
+  font-size:18px;
+  margin:0;
+}
+
+.section{
+  background:var(--card);
+  padding:14px;
+  border-radius:18px;
+  margin-bottom:14px;
+  box-shadow:0 6px 14px rgba(0,0,0,0.04);
+}
+
+.section-title{
+  font-weight:700;
+  margin-bottom:12px;
+  font-size:14px;
+}
+
+.rule{
+  font-size:12px;
+  margin-bottom:8px;
+  opacity:0.85;
+}
+
+textarea{
+  width:100%;
+  height:70px;
+  border-radius:10px;
+  border:none;
+  background:#eef4fb;
+  padding:8px;
+  resize:none;
+  font-size:12px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:14px;
+  font-weight:600;
+  cursor:pointer;
+  margin-top:10px;
+}
+
+.primary{ background:var(--accent); }
+
+/* Popup */
+.overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.35);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  border-radius:28px;
+}
+
+.popup{
+  background:#fff;
+  width:85%;
+  padding:18px;
+  border-radius:18px;
+}
+
+.popup-actions{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+
+.popup-actions button{
+  flex:1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<div class="header">
+  <div class="back" onclick="history.back()">←</div>
+  <h1>Safety Center</h1>
+</div>
+
+<div class="content">
+
+<div class="section">
+  <div class="section-title">Community Guidelines</div>
+  <div class="rule">✔ Return items on agreed date</div>
+  <div class="rule">✔ Maintain original condition</div>
+  <div class="rule">✔ Meet safely</div>
+  <div class="rule">✔ Respect community</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Trust Score</div>
+  <div class="rule">• On-time returns increase trust</div>
+  <div class="rule">• Late returns reduce trust</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Report Issue to Admin</div>
+  <button class="primary" onclick="openReport()">Submit Report</button>
+</div>
+
+</div>
+
+<!-- REPORT POPUP -->
+<div class="overlay" id="reportOverlay">
+  <div class="popup">
+    <textarea id="reportText" placeholder="Explain the issue..."></textarea>
+    <div class="popup-actions">
+      <button onclick="closeReport()">Cancel</button>
+      <button class="primary" onclick="submitReport()">Send</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+/* ================= FIREBASE ================= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+
+/* ================= AUTH ================= */
+
+onAuthStateChanged(auth, (user)=>{
+  if(!user){
+    window.location.href="signin.html";
+    return;
+  }
+  currentUser = user;
+});
+
+/* ================= POPUP ================= */
+
+window.openReport = function(){
+  document.getElementById("reportOverlay").style.display="flex";
+};
+
+window.closeReport = function(){
+  document.getElementById("reportOverlay").style.display="none";
+};
+
+/* ================= SUBMIT REPORT ================= */
+
+window.submitReport = async function(){
+
+  if(!currentUser){
+    alert("Please wait...");
+    return;
+  }
+
+  const textarea = document.getElementById("reportText");
+  const message = textarea.value.trim();
+
+  if(!message){
+    alert("Please write something.");
+    return;
+  }
+
+  try {
+
+    await addDoc(collection(db,"reports"),{
+      reporterId: currentUser.uid,
+      reporterName: currentUser.displayName || "",
+      reporterEmail: currentUser.email || "",
+      message: message,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+
+    alert("Report submitted successfully.");
+    textarea.value = "";
+    closeReport();
+
+  } catch(error){
+    console.error(error);
+    alert("Failed to submit report.");
+  }
+};
+
+</script>
+
+</body>
+</html>

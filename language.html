@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Language Settings</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f6faf6;
+  --card:#ffffff;
+  --accent:#9bbc9b;
+  --text:#153223;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.app{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  background:linear-gradient(180deg,#e9f2ea,#f3f8f3);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.back{
+  cursor:pointer;
+  font-size:18px;
+}
+
+h1{
+  font-family:Merriweather;
+  font-size:18px;
+  margin:0;
+}
+
+.search-box{
+  background:#f3f8f3;
+  padding:8px 12px;
+  border-radius:14px;
+  margin-bottom:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.04);
+}
+
+.search-box input{
+  width:100%;
+  border:none;
+  outline:none;
+  font-size:13px;
+  background:transparent;
+}
+
+.content{
+  flex:1;
+  overflow:auto;
+  padding-right:4px;
+  scrollbar-width:none;
+}
+.content::-webkit-scrollbar{display:none;}
+
+.language-item{
+  background:var(--card);
+  padding:12px;
+  border-radius:14px;
+  margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  cursor:pointer;
+  font-size:13px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.04);
+}
+
+.language-item.active{
+  border:2px solid var(--accent);
+  font-weight:600;
+}
+
+.tick{
+  font-size:14px;
+  display:none;
+}
+
+.language-item.active .tick{
+  display:block;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1 id="pageTitle">Language</h1>
+  </div>
+
+  <div class="search-box">
+    <input type="text" placeholder="Search language..." oninput="filterLanguages(this.value)">
+  </div>
+
+  <div class="content" id="languageList"></div>
+
+</div>
+
+<script>
+
+const languages = [
+  "Hindi","English","Bengali","Telugu","Marathi","Tamil",
+  "Urdu","Gujarati","Kannada","Odia","Malayalam","Punjabi",
+  "Assamese","Maithili","Sanskrit","Konkani","Manipuri",
+  "Bodo","Dogri","Kashmiri","Santali","Sindhi"
+];
+
+const translations = {
+  English: { title: "Language" },
+  Hindi: { title: "भाषा" },
+  Marathi: { title: "भाषा" },
+  Urdu: { title: "زبان" },
+  Bengali: { title: "ভাষা" },
+  Tamil: { title: "மொழி" },
+  Telugu: { title: "భాష" },
+  Gujarati: { title: "ભાષા" }
+};
+
+const container = document.getElementById("languageList");
+
+let selectedLang = localStorage.getItem("appLanguage") || "English";
+
+/* APPLY LANGUAGE */
+function applyLanguage(){
+  const title = document.getElementById("pageTitle");
+
+  if(translations[selectedLang]){
+    title.innerText = translations[selectedLang].title;
+  } else {
+    title.innerText = "Language";
+  }
+}
+
+/* RENDER LIST */
+function renderLanguages(list){
+  container.innerHTML = "";
+
+  list.forEach(lang=>{
+    const item = document.createElement("div");
+    item.className="language-item";
+    item.innerHTML = `
+        ${lang}
+        <span class="tick">✔</span>
+    `;
+
+    if(selectedLang === lang){
+      item.classList.add("active");
+    }
+
+    item.onclick = function(){
+
+      selectedLang = lang;
+
+      document.querySelectorAll(".language-item")
+        .forEach(el=>el.classList.remove("active"));
+
+      item.classList.add("active");
+
+      localStorage.setItem("appLanguage", lang);
+
+      applyLanguage();
+    };
+
+    container.appendChild(item);
+  });
+}
+
+/* SEARCH */
+function filterLanguages(search){
+  const filtered = languages.filter(lang =>
+    lang.toLowerCase().includes(search.toLowerCase())
+  );
+  renderLanguages(filtered);
+}
+
+renderLanguages(languages);
+applyLanguage();
+
+</script>
+
+</body>
+</html>

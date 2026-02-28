@@ -1,0 +1,217 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Rate User</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f6faf6;
+  --card:#ffffff;
+  --accent:#9bbc9b;
+  --text:#153223;
+}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.app{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  background:linear-gradient(180deg,#e9f2ea,#f3f8f3);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.back{
+  cursor:pointer;
+  font-size:18px;
+}
+
+h1{
+  font-family:Merriweather;
+  font-size:18px;
+  margin:0;
+}
+
+.section{
+  background:var(--card);
+  padding:16px;
+  border-radius:18px;
+  margin-bottom:14px;
+  text-align:center;
+}
+
+.user-name{
+  font-weight:600;
+  margin-bottom:12px;
+}
+
+/* STARS */
+.stars{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  font-size:26px;
+  cursor:pointer;
+}
+
+.star{
+  color:#ccc;
+  transition:0.2s;
+}
+
+.star.active{
+  color:#ffb400;
+}
+
+/* TEXTAREA */
+textarea{
+  width:100%;
+  height:90px;
+  border:none;
+  background:#eef6ee;
+  border-radius:14px;
+  padding:10px;
+  resize:none;
+  font-family:Inter;
+  font-size:13px;
+  outline:none;
+  margin-top:12px;
+}
+
+/* BUTTON */
+.submit-area{
+  margin-top:auto;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:14px;
+  font-weight:600;
+  cursor:pointer;
+  background:var(--accent);
+}
+
+/* SUCCESS POPUP */
+.overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.3);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.popup{
+  background:#fff;
+  width:85%;
+  padding:20px;
+  border-radius:18px;
+  text-align:center;
+}
+
+.popup-title{
+  font-weight:700;
+  margin-bottom:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1>Rate User</h1>
+  </div>
+
+  <div class="section">
+    <div class="user-name" id="userName"></div>
+
+    <div class="stars" id="stars">
+      <span class="star" data-value="1">★</span>
+      <span class="star" data-value="2">★</span>
+      <span class="star" data-value="3">★</span>
+      <span class="star" data-value="4">★</span>
+      <span class="star" data-value="5">★</span>
+    </div>
+
+    <textarea placeholder="Write feedback (optional)"></textarea>
+  </div>
+
+  <div class="submit-area">
+    <button onclick="submitRating()">Submit Rating</button>
+  </div>
+
+  <!-- SUCCESS POPUP -->
+  <div class="overlay" id="overlay">
+    <div class="popup">
+      <div class="popup-title">Thank you for your feedback</div>
+      <button onclick="goBack()">Done</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let selectedRating = 0;
+
+const stars = document.querySelectorAll(".star");
+
+stars.forEach(star => {
+  star.addEventListener("click", function(){
+    selectedRating = this.dataset.value;
+    updateStars();
+  });
+});
+
+function updateStars(){
+  stars.forEach(star => {
+    star.classList.remove("active");
+    if(star.dataset.value <= selectedRating){
+      star.classList.add("active");
+    }
+  });
+}
+
+function submitRating(){
+  if(selectedRating === 0){
+    return;
+  }
+  document.getElementById("overlay").style.display = "flex";
+}
+
+function goBack(){
+  window.location.href = "owner-dashboard.html";
+}
+</script>
+
+</body>
+</html>
+
+

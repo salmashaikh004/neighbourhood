@@ -1,0 +1,282 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Welcome</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --page-bg:#e6f0e8;
+  --panel:#dbeadb;
+  --inner:#f3f8f3;
+  --muted:#eaf4ea;
+  --accent:#8aa98a;
+  --accent-dark:#6f8c6f;
+  --text:#123326;
+}
+
+*{box-sizing:border-box}
+
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--page-bg);
+  font-family:Inter,system-ui;
+  color:var(--text);
+}
+
+.wrap{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.card{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  padding:22px 18px;
+  background:linear-gradient(180deg,var(--panel),#e4f0e6);
+  box-shadow:0 12px 30px rgba(15,30,20,0.06);
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:26px;
+  text-align:center;
+}
+
+/* Text */
+.title{
+  font-family:'Merriweather',serif;
+  font-size:26px;
+}
+
+.subtitle{
+  font-size:14px;
+  color:rgba(18,51,38,0.7);
+}
+
+/* Buttons */
+.actions{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.action-btn{
+  background:var(--inner);
+  border:0;
+  border-radius:18px;
+  padding:16px;
+  font-weight:700;
+  font-size:15px;
+  cursor:pointer;
+  box-shadow:0 6px 12px rgba(5,10,5,0.03);
+}
+
+.action-btn.primary{
+  background:var(--accent);
+  color:#0f2b1c;
+}
+
+.note{
+  font-size:12px;
+  color:rgba(18,51,38,0.6);
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <main class="card">
+
+  <div class="title">
+  Welcome, <span id="userName"></span>
+</div>
+
+    <div class="actions">
+      <button class="action-btn primary" onclick="location.href='borrow-dashboard.html'">
+        View Resources
+      </button>
+
+      <button class="action-btn" onclick="location.href='owner-dashboard.html'">
+        Add Resources
+      </button>
+    </div>
+  </main>
+</div>
+<div id="locationModal" style="
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:9999;
+">
+
+<div style="
+background:white;
+padding:16px;
+border-radius:16px;
+width:300px;
+text-align:center;
+">
+
+<h3>Select Your Location</h3>
+
+<div id="map" style="height:200px;border-radius:12px;margin-bottom:10px;"></div>
+
+<button onclick="detectLocation()" style="
+margin-bottom:8px;
+padding:8px;
+width:100%;
+border:none;
+background:#6f8c6f;
+color:white;
+border-radius:10px;
+cursor:pointer;">
+📍 Use My Location
+</button>
+
+<button onclick="confirmLocation()" style="
+padding:8px;
+width:100%;
+border:none;
+background:#8aa98a;
+border-radius:10px;
+cursor:pointer;">
+✅ Confirm Location
+</button>
+
+</div>
+</div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { 
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2",
+  storageBucket: "neighbourhood-app-d2ec2.firebasestorage.app",
+  messagingSenderId: "908023488360",
+  appId: "1:908023488360:web:7afa04d5c69f52ba05c0dd"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+onAuthStateChanged(auth, async (user) => {
+
+  if (!user) {
+    window.location.href = "signin.html";
+    return;
+  }
+
+  document.getElementById("userName").innerText = user.displayName;
+
+  const userRef = doc(db, "users", user.uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists() || !userSnap.data()?.location) {
+  document.getElementById("locationModal").style.display = "flex";
+  setTimeout(initMap, 100);
+}
+});
+let map;
+let marker;
+let selectedLat;
+let selectedLng;
+
+function initMap() {
+  map = L.map('map').setView([19.0760, 72.8777], 13); // Default Mumbai
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  marker = L.marker([19.0760, 72.8777], { draggable: true }).addTo(map);
+
+  marker.on('dragend', function () {
+    const position = marker.getLatLng();
+    selectedLat = position.lat;
+    selectedLng = position.lng;
+  });
+
+  selectedLat = 19.0760;
+  selectedLng = 72.8777;
+}
+window.detectLocation = function () {
+  navigator.geolocation.getCurrentPosition(position => {
+    selectedLat = position.coords.latitude;
+    selectedLng = position.coords.longitude;
+
+    map.setView([selectedLat, selectedLng], 15);
+    marker.setLatLng([selectedLat, selectedLng]);
+  });
+};
+window.confirmLocation = async function () {
+
+  if (!selectedLat || !selectedLng) {
+    alert("Please choose a location first.");
+    return;
+  }
+
+  const user = auth.currentUser;
+
+  try {
+
+    // 🔥 Reverse Geocoding
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${selectedLat}&lon=${selectedLng}`
+    );
+
+    const data = await response.json();
+
+    const fullAddress = data.display_name;
+
+    // 🔥 Save Everything in Firestore
+    await setDoc(doc(db, "users", user.uid), {
+      location: {
+        lat: selectedLat,
+        lng: selectedLng,
+        address: fullAddress
+      }
+    }, { merge: true });
+
+    alert("Location Saved ✅");
+
+    document.getElementById("locationModal").style.display = "none";
+
+  } catch (error) {
+    console.log(error);
+    alert("Failed to save location");
+  }
+};
+
+</script>
+
+</body>
+</html>
+
+

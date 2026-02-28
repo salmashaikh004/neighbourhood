@@ -1,0 +1,114 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Notifications</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#eef6ee;
+  --card:#ffffff;
+  --accent:#9bbc9b;
+  --text:#153223;
+}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.app{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  background:linear-gradient(180deg,#dbeadb,#eaf5ea);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:18px;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.back{
+  cursor:pointer;
+  font-size:18px;
+}
+
+h1{
+  font-family:Merriweather;
+  font-size:20px;
+  margin:0;
+}
+
+.list{
+  flex:1;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.notification{
+  background:var(--card);
+  padding:12px;
+  border-radius:16px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.04);
+  cursor:pointer;
+}
+
+.title{
+  font-weight:600;
+  font-size:14px;
+}
+
+.time{
+  font-size:11px;
+  opacity:0.6;
+  margin-top:4px;
+}
+
+.empty{
+  margin:auto;
+  font-size:13px;
+  opacity:0.6;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1>Notifications</h1>
+  </div>
+
+  <div class="list" id="notificationList">
+    <div class="empty">
+      No new notifications
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
+

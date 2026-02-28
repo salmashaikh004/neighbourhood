@@ -1,0 +1,377 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resources</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Merriweather:wght@700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f6faf6;
+  --card:#ffffff;
+  --accent:#9bbc9b;
+  --text:#153223;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter,system-ui;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+/* MOBILE CONTAINER */
+.app{
+  width:320px;
+  height:600px;
+  background:#e9f2ea;
+  border-radius:28px;
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+
+/* HEADER */
+.header{
+  padding:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.title{
+  font-family:Merriweather,serif;
+  font-size:18px;
+  font-weight:700;
+}
+
+.map-btn{
+  cursor:pointer;
+  font-size:18px;
+}
+
+/* SEARCH */
+.search-box{
+  padding:0 14px 10px;
+}
+
+.search-box input{
+  width:100%;
+  padding:8px 12px;
+  border-radius:18px;
+  border:none;
+  outline:none;
+  font-size:13px;
+}
+
+/* CATEGORY */
+.categories{
+  display:flex;
+  gap:10px;
+  padding:0 14px 10px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.categories::-webkit-scrollbar{ display:none; }
+
+.cat{
+  padding:6px 14px;
+  background:#dbe9df;
+  border-radius:20px;
+  font-size:12px;
+  white-space:nowrap;
+  cursor:pointer;
+}
+
+.cat.active{
+  background:var(--accent);
+}
+
+/* RESOURCE LIST */
+.resource-list{
+  flex:1;
+  overflow-y:auto;
+  padding:10px 14px;
+}
+/* Hide vertical scrollbar only */
+.resource-list::-webkit-scrollbar {
+  width: 0px;
+}
+
+.resource-list {
+  scrollbar-width: none;   /* Firefox */
+  -ms-overflow-style: none; /* Edge */
+}
+
+/* EMPTY STATE */
+.empty{
+  text-align:center;
+  margin-top:120px;
+  font-size:13px;
+  opacity:0.6;
+}
+
+/* MODAL */
+.resource-modal{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  justify-content:center;
+  align-items:flex-end;
+}
+
+.modal-content{
+  width:100%;
+  background:#ffffff;
+  border-radius:24px 24px 0 0;
+  padding:18px;
+  animation:slideUp 0.25s ease;
+}
+
+@keyframes slideUp{
+  from{transform:translateY(100%);}
+  to{transform:translateY(0);}
+}
+
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  font-weight:700;
+  font-size:16px;
+}
+
+.close-btn{
+  cursor:pointer;
+}
+
+.modal-body{
+  margin-top:12px;
+  font-size:13px;
+}
+
+.modal-actions{
+  margin-top:16px;
+  display:flex;
+  gap:10px;
+}
+
+.modal-actions button{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:14px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.request-btn{
+  background:var(--accent);
+}
+
+.message-btn{
+  background:#e5e5e5;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="title">Resources</div>
+    <div class="map-btn" onclick="location.href='map.html'">🗺</div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-box">
+    <input type="text" placeholder="Search items...">
+  </div>
+
+  <!-- CATEGORIES -->
+  <div class="categories">
+    <div class="cat active">All</div>
+    <div class="cat">Books</div>
+    <div class="cat">Tools</div>
+    <div class="cat">Electronics</div>
+    <div class="cat">Kitchen</div>
+    <div class="cat">Clothes</div>
+  </div>
+
+  <!-- RESOURCE LIST (BACKEND WILL INJECT HERE) -->
+  <div class="resource-list" id="resourceList">
+    <div class="empty">No resources available</div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="resource-modal" id="resourceModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span id="modalTitle"></span>
+        <span class="close-btn" onclick="closeResource()">✕</span>
+      </div>
+
+      <div class="modal-body">
+        <div id="modalOwner"></div>
+        <div id="modalDistance"></div>
+        <div id="modalCategory"></div>
+        <p id="modalDescription"></p>
+      </div>
+
+      <div class="modal-actions">
+        <button class="request-btn">Send Request</button>
+        <button class="message-btn">Message</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getFirestore, collection, getDocs } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let allResources = [];
+
+/* AUTH CHECK */
+onAuthStateChanged(auth, async (user) => {
+  if(!user){
+    window.location.href = "signin.html";
+    return;
+  }
+  loadResources();
+});
+
+/* LOAD FROM FIRESTORE */
+async function loadResources(){
+
+  const list = document.getElementById("resourceList");
+  list.innerHTML = "Loading...";
+
+  const snapshot = await getDocs(collection(db, "resources"));
+
+  allResources = [];
+  
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    allResources.push({
+      id: docSnap.id,
+      name: data.name || "",
+      category: data.category || "",
+      description: data.description || "",
+      image: data.images?.[0] || ""
+    });
+  });
+
+  renderResources(allResources);
+}
+
+/* RENDER */
+function renderResources(resources){
+
+  const list = document.getElementById("resourceList");
+  list.innerHTML = "";
+
+  if(resources.length === 0){
+    list.innerHTML = `<div class="empty">No resources found</div>`;
+    return;
+  }
+
+  resources.forEach(item => {
+
+    const card = document.createElement("div");
+    card.style.background="#ffffff";
+    card.style.borderRadius="14px";
+    card.style.padding="10px";
+    card.style.marginBottom="10px";
+    card.style.cursor="pointer";
+
+    card.innerHTML = `
+      <div style="display:flex;gap:10px;">
+        <div style="width:70px;height:70px;border-radius:10px;overflow:hidden;">
+          <img src="${item.image}" 
+               style="width:100%;height:100%;object-fit:cover;">
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:600;">${item.name}</div>
+          <div style="font-size:12px;opacity:0.6;">${item.category}</div>
+        </div>
+      </div>
+    `;
+
+    card.onclick = () => {
+      window.location.href = "resource-details.html?id=" + item.id;
+    };
+
+    list.appendChild(card);
+  });
+}
+
+/* FILTER */
+const searchInput = document.querySelector(".search-box input");
+const categoryButtons = document.querySelectorAll(".cat");
+
+searchInput.addEventListener("input", applyFilters);
+
+categoryButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    categoryButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    applyFilters();
+  });
+});
+
+function applyFilters(){
+
+  const searchValue = searchInput.value.trim().toLowerCase();
+  const activeCat = document.querySelector(".cat.active").innerText.toLowerCase();
+
+  let filtered = allResources;
+
+  if(activeCat !== "all"){
+    filtered = filtered.filter(item =>
+      item.category.toLowerCase() === activeCat
+    );
+  }
+
+  if(searchValue){
+    filtered = filtered.filter(item =>
+      item.name.toLowerCase().includes(searchValue) ||
+      item.category.toLowerCase().includes(searchValue) ||
+      item.description.toLowerCase().includes(searchValue)
+    );
+  }
+
+  renderResources(filtered);
+}
+
+</script>
+
+</body>
+</html>

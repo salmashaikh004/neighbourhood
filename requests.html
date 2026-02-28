@@ -1,0 +1,323 @@
+﻿<!DOCTYPE html> 
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Requests</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --page:#eef6ee;
+  --panel:#dbeadb;
+  --card:#ffffff;
+  --accent:#8aa98a;
+  --text:#123326;
+}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--page);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.app{
+  width:320px;
+  height:600px;
+  background:linear-gradient(180deg,var(--panel),#e7f3e7);
+  border-radius:30px;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.back{
+  cursor:pointer;
+  font-size:18px;
+}
+
+h1{
+  font-family:Merriweather;
+  font-size:20px;
+  margin:0;
+}
+
+.list{
+  flex:1;
+  background:var(--card);
+  border-radius:18px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  overflow:auto;
+}
+
+.empty{
+  margin:auto;
+  font-size:13px;
+  opacity:0.6;
+  text-align:center;
+}
+
+/* 🔥 Added detail modal */
+.detail-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.3);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+
+.detail-box{
+  background:white;
+  width:300px;
+  padding:16px;
+  border-radius:14px;
+}
+
+.detail-box div{
+  margin-bottom:8px;
+  font-size:13px;
+}
+
+.detail-actions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.detail-actions button{
+  flex:1;
+  padding:8px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.approveBtn{background:var(--accent);}
+.rejectBtn{background:#eee;}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1 id="pageTitle">Requests</h1>
+  </div>
+
+  <div class="list" id="requestList">
+    <div class="empty" id="emptyText"></div>
+  </div>
+
+</div>
+
+<!-- 🔥 Detail Modal -->
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-box">
+    <div><b id="detailItem"></b></div>
+    <div>Borrower: <span id="detailBorrower"></span></div>
+    <div>Days: <span id="detailDays"></span></div>
+    <div>Message: <span id="detailMessage"></span></div>
+
+    <div class="detail-actions">
+      <button class="approveBtn" id="detailApprove">Approve</button>
+      <button class="rejectBtn" id="detailReject">Reject</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const mode = localStorage.getItem("mode");
+const title = document.getElementById("pageTitle");
+const emptyText = document.getElementById("emptyText");
+const requestList = document.getElementById("requestList");
+
+let selectedRequestId = null;
+
+const overlay = document.getElementById("detailOverlay");
+const detailItem = document.getElementById("detailItem");
+const detailBorrower = document.getElementById("detailBorrower");
+const detailDays = document.getElementById("detailDays");
+const detailMessage = document.getElementById("detailMessage");
+const detailApprove = document.getElementById("detailApprove");
+const detailReject = document.getElementById("detailReject");
+
+overlay.onclick = (e)=>{
+  if(e.target === overlay) overlay.style.display="none";
+};
+
+onAuthStateChanged(auth, async(user)=>{
+
+  if(!user){
+    window.location.href="signin.html";
+    return;
+  }
+
+  if(mode === "owner"){
+    title.innerText = "Requests Received";
+    loadReceived(user.uid);
+  } else {
+    title.innerText = "Borrow Requests";
+    loadSent(user.uid);
+  }
+
+});
+
+/* ================= RECEIVED ================= */
+
+async function loadReceived(uid){
+
+  const q = query(
+    collection(db,"requests"),
+    where("ownerId","==",uid)   // ✅ FIXED FIELD
+  );
+
+  const snapshot = await getDocs(q);
+  requestList.innerHTML="";
+
+  if(snapshot.empty){
+    emptyText.innerText="No one has requested your items yet.";
+    requestList.appendChild(emptyText);
+    return;
+  }
+
+  snapshot.forEach(docSnap=>{
+    const data = docSnap.data();
+    const reqId = docSnap.id;
+
+    const card = document.createElement("div");
+    card.style.marginBottom="12px";
+    card.style.padding="10px";
+    card.style.background="#f5fbf5";
+    card.style.borderRadius="10px";
+    card.style.cursor="pointer";
+
+    card.innerHTML=`
+      <div><b>${data.resourceName || "Item"}</b></div>
+      <div style="font-size:12px;">Status: ${data.status}</div>
+    `;
+
+    card.onclick = ()=>{
+      selectedRequestId = reqId;
+
+      detailItem.innerText = data.resourceName || "Item";
+      detailBorrower.innerText = data.requesterName || "User";
+      detailDays.innerText = data.borrowDays || "-";
+      detailMessage.innerText = data.message || "-";
+
+      if(data.status !== "pending"){
+        detailApprove.style.display="none";
+        detailReject.style.display="none";
+      } else {
+        detailApprove.style.display="block";
+        detailReject.style.display="block";
+      }
+
+      overlay.style.display="flex";
+    };
+
+    requestList.appendChild(card);
+  });
+}
+
+/* ================= SENT ================= */
+
+async function loadSent(uid){
+
+  const q = query(
+    collection(db,"requests"),
+    where("requesterId","==",uid)  // ✅ FIXED FIELD
+  );
+
+  const snapshot = await getDocs(q);
+  requestList.innerHTML="";
+
+  if(snapshot.empty){
+    emptyText.innerText="You haven’t requested anything yet.";
+    requestList.appendChild(emptyText);
+    return;
+  }
+
+  snapshot.forEach(docSnap=>{
+    const data = docSnap.data();
+
+    const card = document.createElement("div");
+    card.style.marginBottom="12px";
+    card.style.padding="10px";
+    card.style.background="#f5fbf5";
+    card.style.borderRadius="10px";
+
+    card.innerHTML=`
+      <div><b>${data.resourceName || "Item"}</b></div>
+      <div style="font-size:12px;">Status: ${data.status}</div>
+    `;
+
+    requestList.appendChild(card);
+  });
+}
+
+/* ================= APPROVE ================= */
+
+detailApprove.onclick = async ()=>{
+  await updateDoc(doc(db,"requests",selectedRequestId),{
+    status:"approved"
+  });
+  overlay.style.display="none";
+  location.reload();
+};
+
+/* ================= REJECT ================= */
+
+detailReject.onclick = async ()=>{
+  await updateDoc(doc(db,"requests",selectedRequestId),{
+    status:"rejected"
+  });
+  overlay.style.display="none";
+  location.reload();
+};
+
+</script>
+
+</body>
+</html>

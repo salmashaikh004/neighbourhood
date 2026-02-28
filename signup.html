@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neighbourhood Resource Exchange — Sign Up</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --page-bg:#f6faf6;
+  --card-bg:#efeadd;
+  --input-bg:#f3f7f1;
+  --btn-bg:#9bbc9b;
+  --btn-text:#0d2a18;
+  --text:#153223;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--page-bg);
+  font-family:Inter,system-ui;
+}
+
+.card{
+  width:320px;
+  height:600px;
+  background:linear-gradient(180deg,var(--card-bg),#f8f9f6);
+  border-radius:30px;
+  padding:22px;
+  box-shadow:0 10px 26px rgba(10,20,10,0.06);
+}
+
+h1{
+  font-family:Merriweather,serif;
+  font-size:24px;
+  margin-bottom:16px;
+  text-align:center;
+  color:var(--text);
+}
+
+form{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+input{
+  background:var(--input-bg);
+  border:0;
+  padding:12px 14px;
+  border-radius:12px;
+  font-size:15px;
+  outline:none;
+}
+
+button{
+  background:var(--btn-bg);
+  border:0;
+  padding:12px;
+  border-radius:14px;
+  font-weight:700;
+  font-size:16px;
+  cursor:pointer;
+  color:var(--btn-text);
+  margin-top:6px;
+}
+
+.small{
+  margin-top:10px;
+  font-size:13px;
+  text-align:center;
+}
+
+.small a{
+  color:var(--btn-bg);
+  font-weight:700;
+  text-decoration:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h1>Create Account</h1>
+
+  <form onsubmit="signupUser(event)">
+    <input id="nameInput" type="text" placeholder="Full Name" required>
+    <input id="emailInput" type="email" placeholder="Email" required>
+    <input id="password" type="password" placeholder="Password" required>
+    <input id="confirm" type="password" placeholder="Confirm Password" required>
+
+    <button type="submit">Sign Up</button>
+  </form>
+
+  <div class="small">
+    Already have an account?
+    <a href="signin.html">Log in</a>
+  </div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  sendEmailVerification, 
+  updateProfile,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+window.signupUser = async function(e){
+  e.preventDefault();
+
+  const name = document.getElementById("nameInput").value.trim();
+  const email = document.getElementById("emailInput").value.trim();
+  const password = document.getElementById("password").value;
+  const confirm = document.getElementById("confirm").value;
+
+  if(password !== confirm){
+    alert("Passwords do not match!");
+    return;
+  }
+
+  if(password.length < 6){
+    alert("Password must be at least 6 characters.");
+    return;
+  }
+
+  try {
+
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    /* ✅ Update display name */
+    await updateProfile(user, {
+      displayName: name
+    });
+
+    /* ✅ Create Firestore user document */
+    await setDoc(doc(db, "users", user.uid), {
+      displayName: name,
+      email: email,
+      createdAt: serverTimestamp(),
+      trustScore: 100,
+      bio: "",
+      location: null
+    });
+
+    /* ✅ Send verification email */
+    await sendEmailVerification(user);
+
+    /* ✅ Sign out after signup */
+    await signOut(auth);
+
+    alert("Account created! Please verify your email before signing in.");
+    window.location.href = "signin.html";
+
+  } catch(error){
+    alert(error.message);
+  }
+};
+
+</script>
+</body>
+</html>

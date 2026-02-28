@@ -1,0 +1,257 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emergency Request</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f7f2f2;
+  --card:#fceaea;
+  --input:#fff5f5;
+  --btn:#e57373;
+  --text:#3a1c1c;
+}
+body{
+  margin:0;
+  font-family:Inter;
+  background:var(--bg);
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+.card{
+  width:320px;
+  height:600px;
+  border-radius:30px;
+  background:linear-gradient(180deg,#f8eaea,#fff);
+  padding:22px;
+  box-shadow:0 10px 26px rgba(0,0,0,0.05);
+  display:flex;
+  flex-direction:column;
+  overflow:auto;
+}
+h1{
+  font-family:Merriweather;
+  font-size:22px;
+  margin-bottom:18px;
+  color:#b03a2e;
+}
+input, textarea{
+  background:var(--input);
+  border:none;
+  padding:12px;
+  border-radius:14px;
+  margin-bottom:12px;
+  font-size:14px;
+}
+textarea{resize:none;height:80px;}
+button{
+  background:var(--btn);
+  border:none;
+  padding:12px;
+  border-radius:16px;
+  font-weight:700;
+  color:white;
+  cursor:pointer;
+}
+.note{
+  font-size:12px;
+  opacity:0.6;
+  margin-top:8px;
+}
+.section-title{
+  font-weight:700;
+  margin-top:18px;
+  margin-bottom:8px;
+  font-size:15px;
+}
+.emergency-card{
+  background:#fff;
+  border-radius:14px;
+  padding:10px;
+  margin-bottom:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.emergency-title{
+  font-weight:600;
+}
+.emergency-desc{
+  font-size:12px;
+  opacity:0.7;
+  margin-top:4px;
+}
+.timer{
+  font-size:11px;
+  margin-top:6px;
+  color:#b03a2e;
+}
+.empty{
+  font-size:12px;
+  opacity:0.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h1>🚨 Emergency Request</h1>
+
+  <input id="titleInput" type="text" placeholder="What do you need urgently?">
+  <textarea id="descInput" placeholder="Short description (optional)"></textarea>
+
+  <button onclick="submitEmergency()">Post Urgent Request</button>
+
+  <div class="note">
+    This request will be visible to nearby users for 24 hours only.
+  </div>
+
+  <div class="section-title">Active Emergency Requests</div>
+  <div id="emergencyList"></div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  Timestamp,
+  query,
+  where,
+  onSnapshot,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+const emergencyList = document.getElementById("emergencyList");
+
+onAuthStateChanged(auth,(user)=>{
+  if(!user){
+    window.location.href="signin.html";
+    return;
+  }
+  currentUser = user;
+  loadEmergencies();
+});
+
+/* =======================
+   SUBMIT EMERGENCY
+======================= */
+window.submitEmergency = async function(){
+
+  if(!currentUser){
+    alert("Please wait...");
+    return;
+  }
+
+  const title = document.getElementById("titleInput").value.trim();
+  const description = document.getElementById("descInput").value.trim();
+
+  if(!title){
+    alert("Please enter what you need.");
+    return;
+  }
+
+  const expiresTimestamp = Timestamp.fromDate(
+    new Date(Date.now() + 24 * 60 * 60 * 1000)
+  );
+
+  await addDoc(collection(db,"emergencyRequests"),{
+    userId: currentUser.uid,
+    userName: currentUser.displayName || "User",
+    userPhoto: currentUser.photoURL || null,
+    title,
+    description,
+    status: "active",
+    createdAt: serverTimestamp(),
+    expiresAt: expiresTimestamp
+  });
+
+  document.getElementById("titleInput").value="";
+  document.getElementById("descInput").value="";
+};
+
+/* =======================
+   LOAD ACTIVE REQUESTS
+======================= */
+
+function loadEmergencies(){
+
+  const q = query(
+    collection(db,"emergencyRequests"),
+    where("status","==","active")
+  );
+
+  onSnapshot(q,(snapshot)=>{
+
+    emergencyList.innerHTML="";
+
+    if(snapshot.empty){
+      emergencyList.innerHTML="<div class='empty'>No active requests</div>";
+      return;
+    }
+
+    snapshot.forEach(docSnap=>{
+      const data = docSnap.data();
+      const now = Date.now();
+      const expireTime = data.expiresAt?.toDate()?.getTime();
+
+      // 🔥 Auto delete expired
+      if(expireTime && expireTime < now){
+        deleteDoc(doc(db,"emergencyRequests",docSnap.id));
+        return;
+      }
+
+      const remaining = expireTime
+        ? Math.max(0, expireTime - now)
+        : 0;
+
+      const hours = Math.floor(remaining / (1000*60*60));
+      const minutes = Math.floor(
+        (remaining % (1000*60*60)) / (1000*60)
+      );
+
+      const card = document.createElement("div");
+      card.className="emergency-card";
+
+      card.innerHTML=`
+        <div class="emergency-title">
+          ${data.title}
+        </div>
+        <div class="emergency-desc">
+          ${data.description || ""}
+        </div>
+        <div class="timer">
+          ⏳ ${hours}h ${minutes}m left
+        </div>
+      `;
+
+      emergencyList.appendChild(card);
+    });
+
+  });
+}
+
+</script>
+</body>
+</html>

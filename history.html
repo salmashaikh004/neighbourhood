@@ -1,0 +1,194 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>History</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f6faf6;
+  --card:#ffffff;
+  --panel:#e9f2ea;
+  --text:#153223;
+}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.app{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  background:linear-gradient(180deg,var(--panel),#f3f8f3);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.back{
+  cursor:pointer;
+  font-size:18px;
+}
+
+h1{
+  font-family:Merriweather;
+  font-size:18px;
+  margin:0;
+}
+
+.list{
+  flex:1;
+  overflow:auto;
+}
+
+.card{
+  background:#ffffff;
+  padding:12px;
+  border-radius:14px;
+  margin-bottom:10px;
+}
+
+.title{
+  font-weight:600;
+}
+
+.meta{
+  font-size:12px;
+  opacity:0.6;
+  margin-top:4px;
+}
+
+.empty{
+  text-align:center;
+  margin-top:120px;
+  font-size:13px;
+  opacity:0.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1>Borrow & Lending History</h1>
+  </div>
+
+  <div class="list" id="historyList"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const container = document.getElementById("historyList");
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    window.location.href="signin.html";
+    return;
+  }
+
+  const q = query(
+    collection(db,"requests"),
+    where("status","==","completed")
+  );
+
+  const snapshot = await getDocs(q);
+
+  const userTransactions = snapshot.docs.filter(d=>{
+    const data = d.data();
+    return data.receiverId === user.uid || data.senderId === user.uid;
+  });
+
+  if(userTransactions.length === 0){
+    container.innerHTML =
+      "<div class='empty'>No completed transactions yet</div>";
+    return;
+  }
+
+  for(const docSnap of userTransactions){
+
+    const data = docSnap.data();
+
+    const otherUserId =
+      data.receiverId === user.uid
+      ? data.senderId
+      : data.receiverId;
+
+    // 🔥 fetch real name from users collection
+    const userSnap = await getDoc(doc(db,"users",otherUserId));
+
+    let otherName = "User";
+
+    if(userSnap.exists()){
+      const u = userSnap.data();
+      otherName =
+        u.displayName ||
+        u.name ||
+        u.username ||
+        "User";
+    }
+
+    const date = data.returnedAt?.seconds
+      ? new Date(data.returnedAt.seconds * 1000)
+        .toLocaleDateString()
+      : "";
+
+    container.innerHTML += `
+      <div class="card">
+        <div class="title">${data.itemName || "Item"}</div>
+        <div class="meta">
+          With ${otherName} • ${date}
+        </div>
+      </div>
+    `;
+  }
+
+});
+
+</script>
+</body>
+</html>
+

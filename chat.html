@@ -1,0 +1,511 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --top: #e1f5fe;
+  --sent: #f8bbd0;
+  --rec: #bbdefb;
+  --input: #ffffff;
+  --text: #2c2c2c;
+  --sub: #6b6b6b;
+  --accent: #ff80ab;
+}
+
+*{
+  box-sizing:border-box;
+  font-family:Inter, sans-serif;
+}
+
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(135deg, #fce4ec, #e3f2fd);
+}
+
+.chat-app{
+  width:360px;
+  height:640px;
+  background:rgba(255,255,255,0.5);
+  backdrop-filter:blur(20px);
+  border-radius:20px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 15px 40px rgba(0,0,0,0.15);
+  position:relative;
+}
+
+/* HEADER */
+.header{
+  background:var(--top);
+  padding:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.header-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.avatar{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.name{
+  font-weight:600;
+  color:var(--text);
+}
+
+.status{
+  font-size:12px;
+  color:var(--sub);
+}
+
+/* 3 DOT MENU */
+.menu-wrapper{
+  position:relative;
+}
+
+.menu-btn{
+  font-size:20px;
+  cursor:pointer;
+  padding:5px;
+}
+
+.menu-dropdown{
+  position:absolute;
+  right:0;
+  top:30px;
+  background:white;
+  width:170px;
+  border-radius:10px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.15);
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+  z-index:200;
+}
+
+.menu-dropdown div{
+  padding:10px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+.menu-dropdown div:hover{
+  background:#f1f1f1;
+}
+
+/* CHAT BODY */
+.chat-body{
+  flex:1;
+  padding:12px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  scrollbar-width:none;
+}
+.chat-body::-webkit-scrollbar{display:none;}
+
+.message{
+  max-width:70%;
+  padding:10px 12px;
+  border-radius:15px;
+  font-size:14px;
+  color:var(--text);
+  box-shadow:0 2px 8px rgba(0,0,0,0.07);
+}
+
+.sent{
+  background:var(--sent);
+  align-self:flex-end;
+}
+
+.received{
+  background:var(--rec);
+  align-self:flex-start;
+}
+
+.time{
+  font-size:10px;
+  color:var(--sub);
+  text-align:right;
+  margin-top:4px;
+}
+
+/* INPUT */
+.input-bar{
+  padding:10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:rgba(255,255,255,0.7);
+  position:relative;
+}
+
+.input-wrapper{
+  flex:1;
+  display:flex;
+  align-items:center;
+  background:var(--input);
+  border-radius:25px;
+  padding:8px 12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.06);
+}
+
+.input-wrapper input{
+  flex:1;
+  border:none;
+  outline:none;
+  background:transparent;
+}
+
+.send-btn{
+  width:45px;
+  height:45px;
+  background:var(--accent);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  cursor:pointer;
+  font-size:18px;
+}
+
+.emoji-panel{
+  position:absolute;
+  bottom:70px;
+  left:0;
+  width:100%;
+  background:white;
+  padding:10px;
+  flex-wrap:wrap;
+  gap:10px;
+  font-size:22px;
+  display:none;
+  z-index:100;
+}
+
+.emoji-panel span{
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="chat-app">
+
+<div class="header">
+  <div class="header-left">
+    <span onclick="goBack()">←</span>
+
+    <img id="avatarImg"
+         class="avatar"
+         src="https://via.placeholder.com/40"
+         onclick="openProfile()"
+         style="cursor:pointer;">
+
+    <div>
+      <div class="name" id="chatUserName">User</div>
+      <div class="status">Online</div>
+    </div>
+  </div>
+
+  <div class="menu-wrapper">
+    <div class="menu-btn" onclick="toggleMenu()">⋮</div>
+   <div class="menu-dropdown" id="menuDropdown">
+  <div id="reportBtn">Report</div>
+  <div id="blockBtn">Block</div>
+  <div id="clearBtn">Clear chat</div>
+  
+</div>
+  </div>
+
+</div>
+
+<div class="chat-body" id="chatBody"></div>
+
+<div class="input-bar">
+<div class="emoji-panel" id="emojiPanel">
+  <span>😀</span><span>😁</span><span>😂</span><span>😍</span>
+  <span>🥺</span><span>❤️</span><span>🔥</span><span>😭</span>
+</div>
+
+<div class="input-wrapper">
+<span onclick="toggleEmoji()" style="cursor:pointer;">😊</span>
+<input id="msgInput" placeholder="Message"
+onkeydown="if(event.key==='Enter') sendMsg()">
+</div>
+
+<div class="send-btn" onclick="sendMsg()">➤</div>
+</div>
+
+</div>
+
+<script>
+function toggleMenu(){
+const menu = document.getElementById("menuDropdown");
+menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+}
+window.onclick = function(e){
+if(!e.target.matches('.menu-btn')){
+const menu = document.getElementById("menuDropdown");
+if(menu) menu.style.display = "none";
+}
+}
+</script>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  serverTimestamp,
+  onSnapshot,
+  query,
+  orderBy,
+  getDocs              // ✅ added only this
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let otherUserId = null;
+
+const chatId = new URLSearchParams(window.location.search).get("chatId");
+
+if(!chatId){
+  alert("Chat ID missing");
+  window.location.href = "messages.html";
+}
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    window.location.href = "signin.html";
+    return;
+  }
+  currentUser = user;
+  await loadHeader();
+  listenMessages();
+});
+
+async function loadHeader(){
+
+  const chatSnap = await getDoc(doc(db,"chats",chatId));
+  if(!chatSnap.exists()) return;
+
+  const chatData = chatSnap.data();
+
+  if(!chatData.participants || chatData.participants.length < 2){
+    return;
+  }
+
+  otherUserId = chatData.participants
+    .filter(id => id !== currentUser.uid)[0];
+
+  const userSnap = await getDoc(doc(db,"users",otherUserId));
+
+  if(userSnap.exists()){
+    const userData = userSnap.data();
+
+          
+document.getElementById("chatUserName").innerText=
+userData.name||
+userData.fullName||
+userData.username||
+userData.displayName||
+"User";
+
+    document.getElementById("avatarImg").src =
+      userData.photo ||
+      userData.photoURL ||
+      userData.profilePic ||
+      userData.profileImage ||
+      userData.displayPhoto ||
+      "https://via.placeholder.com/40";
+  }
+}
+
+function listenMessages(){
+  const q = query(
+    collection(db,"chats",chatId,"messages"),
+    orderBy("createdAt","asc")
+  );
+
+  onSnapshot(q,(snapshot)=>{
+    const body = document.getElementById("chatBody");
+    body.innerHTML="";
+    snapshot.forEach(docSnap=>{
+      renderMessage(docSnap.data());
+    });
+    body.scrollTop = body.scrollHeight;
+  });
+}
+
+function renderMessage(data){
+  const body = document.getElementById("chatBody");
+  const div = document.createElement("div");
+
+  const isMe = data.senderId === currentUser.uid;
+  div.className = "message " + (isMe ? "sent" : "received");
+
+  div.innerHTML = `
+    ${data.text || ""}
+    <div class="time">
+      ${data.createdAt?.seconds ?
+        new Date(data.createdAt.seconds*1000)
+          .toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : ""}
+    </div>
+  `;
+
+  body.appendChild(div);
+}
+
+/* ========= SEND ========= */
+
+window.sendMsg = async function(){
+
+  const input = document.getElementById("msgInput");
+  const text = input.value.trim();
+  if(!text) return;
+
+  await addDoc(
+    collection(db,"chats",chatId,"messages"),
+    {
+      senderId: currentUser.uid,
+      text: text,
+      createdAt: serverTimestamp()
+    }
+  );
+
+  await updateDoc(
+    doc(db,"chats",chatId),
+    {
+      lastMessage: text,
+      updatedAt: serverTimestamp()
+    }
+  );
+
+  input.value="";
+};
+
+/* ========= REPORT (fixed) ========= */
+
+window.reportUser = async function(){
+
+  await addDoc(collection(db,"reports"),{
+    reporterId: currentUser.uid,
+    reportedUserId: otherUserId,
+    chatId: chatId,
+    createdAt: serverTimestamp()
+  });
+
+  alert("User reported successfully.");
+};
+
+/* ========= BLOCK (your original logic kept) ========= */
+
+window.blockUser = async function(){
+  if(!currentUser || !otherUserId) return;
+
+  const confirmBlock = confirm("Are you sure you want to block this user?");
+  if(!confirmBlock) return;
+
+  await addDoc(collection(db,"blocked_users"),{
+    blockerId: currentUser.uid,
+    blockedUserId: otherUserId
+  });
+
+  await deleteDoc(doc(db,"chats",chatId));
+
+  alert("User blocked successfully");
+  window.location.href = "messages.html";
+};
+
+/* ========= CLEAR CHAT (fixed) ========= */
+
+window.clearChat = async function(){
+
+  const confirmClear = confirm("Clear chat?");
+  if(!confirmClear) return;
+
+  const snapshot = await getDocs(
+    collection(db,"chats",chatId,"messages")
+  );
+
+  for(const msg of snapshot.docs){
+    await deleteDoc(msg.ref);
+  }
+
+  alert("Chat Cleared");
+};
+
+
+/* ========= OTHER ========= */
+
+window.goBack = function(){
+  window.location.href="messages.html";
+};
+
+window.openProfile = function(){
+  if(otherUserId){
+    window.location.href="my_profile.html?uid=" + otherUserId;
+  }
+};
+
+window.toggleEmoji = function(){
+  const panel = document.getElementById("emojiPanel");
+  panel.style.display =
+    panel.style.display === "flex" ? "none" : "flex";
+};
+
+document.getElementById("emojiPanel")
+.addEventListener("click",(e)=>{
+  if(e.target.tagName==="SPAN"){
+    document.getElementById("msgInput").value += e.target.innerText;
+  }
+});
+// MENU BUTTON EVENTS (REAL FIX)
+document.getElementById("reportBtn").addEventListener("click", reportUser);
+document.getElementById("blockBtn").addEventListener("click", blockUser);
+document.getElementById("clearBtn").addEventListener("click", clearChat);
+
+
+</script>
+</body>
+</html>

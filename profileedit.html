@@ -1,0 +1,268 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit Profile</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --page-bg:#f6faf6;
+  --card-bg:#ffffff;
+  --input-bg:#f3f7f1;
+  --btn-bg:#9bbc9b;
+  --danger:#d96c6c;
+  --text:#153223;
+  --muted:#6d8c7a;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;height:100vh;background:var(--page-bg);
+  font-family:Inter,system-ui;display:flex;
+  align-items:center;justify-content:center;
+}
+.phone{
+  width:320px;height:600px;
+  background:linear-gradient(180deg,#efeadd,#f8f9f6);
+  border-radius:30px;padding:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,0.05);
+  overflow-y:auto;scrollbar-width:none;
+}
+.phone::-webkit-scrollbar{display:none;}
+.header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.back{font-size:20px;cursor:pointer;}
+h1{font-family:Merriweather,serif;font-size:20px;margin:0;color:var(--text);}
+.avatar-section{text-align:center;background:var(--card-bg);
+  padding:18px;border-radius:22px;
+  box-shadow:0 6px 16px rgba(0,0,0,0.04);
+  margin-bottom:14px;}
+.avatar{
+  width:90px;height:90px;border-radius:50%;
+  background:#cfe2d5;display:flex;
+  align-items:center;justify-content:center;
+  margin:auto;overflow:hidden;cursor:pointer;font-size:30px;
+}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+.change-photo{margin-top:8px;font-size:13px;font-weight:600;color:var(--btn-bg);cursor:pointer;}
+.section{background:var(--card-bg);padding:14px;border-radius:18px;
+  box-shadow:0 5px 14px rgba(0,0,0,0.03);margin-bottom:12px;}
+.section h2{margin:0 0 10px 0;font-size:14px;font-weight:600;color:var(--muted);}
+.field{margin-bottom:10px;}
+.field label{font-size:12px;font-weight:600;}
+.field input,.field textarea{
+  width:100%;border:none;background:var(--input-bg);
+  padding:10px;border-radius:12px;margin-top:4px;
+  font-size:13px;outline:none;
+}
+textarea{resize:none;height:55px;}
+.save-btn{width:100%;padding:12px;border:none;border-radius:16px;
+  background:var(--btn-bg);font-weight:700;font-size:14px;cursor:pointer;margin-top:6px;}
+.secondary-btn,.danger-btn{width:100%;padding:10px;border:none;
+  border-radius:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.secondary-btn{background:#e3ece5;}
+.danger-btn{background:var(--danger);color:white;}
+</style>
+</head>
+
+<body>
+
+<div class="phone">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1>Edit Profile</h1>
+  </div>
+
+  <div class="avatar-section">
+    <label class="avatar" for="avatarInput">
+      <img id="avatarImg" style="display:none;">
+      <span id="avatarInitial">U</span>
+    </label>
+    <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+    <div class="change-photo" onclick="avatarInput.click()">Change Profile Photo</div>
+  </div>
+
+  <div class="section">
+    <h2>Personal Information</h2>
+
+    <div class="field">
+      <label>Full Name</label>
+      <input type="text" id="editName">
+    </div>
+
+    <div class="field">
+      <label>Bio</label>
+      <textarea id="editBio" placeholder="Tell something about you..."></textarea>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Location</h2>
+    <div id="editLocation" style="font-size:13px;color:var(--muted);margin-bottom:6px;"></div>
+  </div>
+
+  <button class="secondary-btn" id="logoutBtn">Logout</button>
+  <button class="danger-btn" id="deleteBtn">Delete Account</button>
+  <button class="save-btn" id="saveBtn">Save Changes</button>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, updateProfile, signOut, deleteUser }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let newPhoto = null;
+let fullAddress = "";
+
+const nameInput = document.getElementById("editName");
+const bioInput = document.getElementById("editBio");
+const locationDiv = document.getElementById("editLocation");
+const avatarImg = document.getElementById("avatarImg");
+const avatarInitial = document.getElementById("avatarInitial");
+const avatarInput = document.getElementById("avatarInput");
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "signin.html";
+    return;
+  }
+
+  currentUser = user;
+
+  nameInput.value = user.displayName || "";
+  avatarInitial.innerText = user.displayName?.charAt(0).toUpperCase() || "U";
+
+  const snap = await getDoc(doc(db,"users",user.uid));
+  if(snap.exists()){
+    const data = snap.data();
+    if(data.bio) bioInput.value = data.bio;
+    if(data.photo){
+      avatarImg.src = data.photo;
+      avatarImg.style.display="block";
+      avatarInitial.style.display="none";
+    }
+    if(data.location?.address){
+      locationDiv.innerText = data.location.address;
+      fullAddress = data.location.address;
+    }
+  }
+
+  detectLocation();
+});
+
+async function detectLocation(){
+  if(!navigator.geolocation){
+    locationDiv.innerText = "Geolocation not supported";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async position=>{
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+
+    try{
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+        { headers: { "User-Agent":"neighbourhood-app" } }
+      );
+
+      const data = await res.json();
+      if(data.display_name){
+        fullAddress = data.display_name;
+        locationDiv.innerText = fullAddress;
+      }
+
+    }catch(err){
+      console.log("Location API error:",err);
+    }
+
+  },()=>{
+    locationDiv.innerText = "Location permission denied";
+  });
+}
+
+avatarInput.addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    newPhoto = reader.result;
+    avatarImg.src = newPhoto;
+    avatarImg.style.display="block";
+    avatarInitial.style.display="none";
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("saveBtn").addEventListener("click", async ()=>{
+  if(!currentUser) return;
+
+  try{
+
+    // Safe display name update
+    if(nameInput.value.trim() !== ""){
+      await updateProfile(currentUser,{
+        displayName: nameInput.value.trim()
+      });
+    }
+
+    const updateData = {
+      displayName: nameInput.value.trim(),
+      bio: bioInput.value,
+      location:{
+        address: fullAddress || locationDiv.innerText || ""
+      }
+    };
+
+    if(newPhoto){
+      updateData.photo = newPhoto;
+    }
+
+    await setDoc(
+      doc(db,"users",currentUser.uid),
+      updateData,
+      { merge:true }
+    );
+
+    alert("Profile Updated");
+    window.location.href="my_profile.html";
+
+  }catch(error){
+    console.error("SAVE ERROR:",error);
+    alert("Error saving profile.");
+  }
+});
+
+document.getElementById("logoutBtn").addEventListener("click", async ()=>{
+  await signOut(auth);
+  window.location.href="signin.html";
+});
+
+document.getElementById("deleteBtn").addEventListener("click", async ()=>{
+  if(!confirm("Delete account permanently?")) return;
+  await deleteDoc(doc(db,"users",currentUser.uid));
+  await deleteUser(currentUser);
+  window.location.href="signup.html";
+});
+</script>
+
+</body>
+</html>

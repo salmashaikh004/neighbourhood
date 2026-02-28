@@ -1,0 +1,214 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocked Users</title>
+<script>window.location.href='blocked_users_new.html';</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f6faf6;
+  --card:#ffffff;
+  --accent:#9bbc9b;
+  --danger:#e57373;
+  --text:#153223;
+}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.app{
+  width:320px;
+  height:600px;
+  border-radius:28px;
+  background:linear-gradient(180deg,#e9f2ea,#f3f8f3);
+  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+}
+
+.back{cursor:pointer;font-size:18px;}
+h1{font-family:Merriweather;font-size:18px;margin:0;}
+
+.list{
+  flex:1;
+  background:var(--card);
+  border-radius:18px;
+  padding:14px;
+  overflow:auto;
+}
+
+.user-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 0;
+  border-bottom:1px solid #eef4fb;
+}
+
+.user-name{
+  font-weight:600;
+  font-size:14px;
+  color:var(--text);
+}
+
+button{
+  background:var(--danger);
+  border:none;
+  padding:6px 12px;
+  border-radius:10px;
+  color:white;
+  font-size:12px;
+  cursor:pointer;
+}
+
+button:hover{
+  opacity:0.9;
+}
+
+.empty{
+  text-align:center;
+  margin-top:40%;
+  font-size:13px;
+  opacity:0.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="back" onclick="history.back()">←</div>
+    <h1>Blocked Users</h1>
+  </div>
+
+  <div class="list" id="blockedList"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZU8DY5BYvU6UDFx9ry-VlwY70nA_mWdk",
+  authDomain: "neighbourhood-app-d2ec2.firebaseapp.com",
+  projectId: "neighbourhood-app-d2ec2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const list = document.getElementById("blockedList");
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    window.location.href="signin.html";
+    return;
+  }
+  loadBlockedUsers(user.uid);
+});
+
+async function loadBlockedUsers(uid){
+
+  list.innerHTML = "";
+
+  try{
+    const q = query(
+      collection(db,"blocked_users"),
+      where("blockerId","==",uid)
+    );
+
+    const snapshot = await getDocs(q);
+
+    if(snapshot.empty){
+      list.innerHTML = "<div class='empty'>No blocked users</div>";
+      return;
+    }
+
+    for(const docSnap of snapshot.docs){
+
+      const data = docSnap.data();
+      const blockedId = data.blockedUserId;
+
+      // Get blocked user info from users collection
+      const userRef = doc(db,"users",blockedId);
+      const userSnap = await getDoc(userRef);
+
+      let displayName = "User";
+
+      if(userSnap.exists()){
+        const userData = userSnap.data();
+        displayName =
+          userData.displayName ||
+          userData.name ||
+          userData.username ||
+          "User";
+      }
+
+      const div = document.createElement("div");
+      div.className = "user-card";
+
+      div.innerHTML = `
+        <div class="user-name">${displayName}</div>
+        <button data-id="${docSnap.id}">Unblock</button>
+      `;
+
+      div.querySelector("button").onclick = () => {
+        unblockUser(docSnap.id, uid);
+      };
+
+      list.appendChild(div);
+    }
+
+  } catch(error){
+    console.error("Blocked list error:", error);
+    list.innerHTML = "<div class='empty'>Error loading users</div>";
+  }
+}
+
+async function unblockUser(docId, uid){
+  try{
+    await deleteDoc(doc(db,"blocked_users",docId));
+    loadBlockedUsers(uid);
+  } catch(error){
+    console.error("Unblock error:", error);
+  }
+}
+
+</script>
+
+</body>
+</html>
